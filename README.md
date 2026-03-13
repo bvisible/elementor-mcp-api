@@ -116,6 +116,27 @@ This plugin can expose its capabilities via the Model Context Protocol for direc
 
 MCP endpoint: `https://your-site.com/wp-json/mcp/mcp-adapter-default-server`
 
+## Claude Code Skill
+
+This repo includes a ready-to-use [Claude Code](https://claude.com/claude-code) skill in `claude-skill/`. It teaches Claude how to use the API: workflows, element structures, widget settings, layout patterns, and design best practices.
+
+### Install the skill
+
+```bash
+cd elementor-mcp-api/
+bash claude-skill/install.sh
+```
+
+This copies the skill to `~/.claude/skills/elementor-builder/`. Restart Claude Code — then just say "build an Elementor page" and it knows how.
+
+### What the skill provides
+
+- Full API workflow (discover → explore → edit → flush → verify)
+- Elementor element JSON structure and common widget settings
+- Reusable section patterns (hero, content rows, icon grids, contact forms, photo collages)
+- Design best practices (zigzag layouts, background color alternation, responsive rules)
+- Critical gotchas (race conditions, CSS cache, flex layout math)
+
 ## Important Notes
 
 - **Sequential PATCH calls**: Never run multiple PATCH calls in parallel on the same page. Each PATCH loads, modifies, and saves the full page — parallel calls overwrite each other. Cross-page parallelism is safe.
