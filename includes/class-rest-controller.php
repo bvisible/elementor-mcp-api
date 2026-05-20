@@ -81,6 +81,31 @@ class REST_Controller {
             ...$editor,
         ]);
 
+        // ── Bulk operations (1.3.0) ──────────────────────
+        // Apply many PATCH operations in a single page load/save cycle.
+        // Body: {"patches":[{"id":"abc","settings":{...}}, ...]}
+        register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/elements/patch-bulk', [
+            'methods'  => 'POST',
+            'callback' => [$this, 'patch_elements_bulk'],
+            ...$editor,
+        ]);
+
+        // Helper: set flex column width on a container (Elementor v4 requires
+        // _flex_size + _inline_size + width together — this endpoint sets all three).
+        // Body: {"percent":25, "tablet":50, "mobile":100}
+        register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)/column-width', [
+            'methods'  => 'PATCH',
+            'callback' => [$this, 'set_column_width'],
+            ...$editor,
+        ]);
+
+        // Find elements by widgetType. Returns array of {id, parent_id, depth}.
+        register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/find', [
+            'methods'  => 'GET',
+            'callback' => [$this, 'find_elements'],
+            ...$reader,
+        ]);
+
         // ── Section-level insert ─────────────────────────
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/section', [
             'methods'  => 'POST',
@@ -438,6 +463,164 @@ class REST_Controller {
             'element_id' => $element_id,
             'parent_id'  => $new_parent_id,
             'position'   => $new_position,
+        ], 200);
+    }
+
+    // ── Bulk operations (1.3.0) ──────────────────────────────
+
+    /**
+     * Apply many settings PATCHes to multiple elements in one page load/save cycle.
+     * Body: {"patches":[{"id":"abc","settings":{...}}, ...]}
+     * Patches are applied sequentially in the given order.
+     */
+    public function patch_elements_bulk(\WP_REST_Request $request): \WP_REST_Response {
+        $page_id = (int) $request['id'];
+        $body    = $request->get_json_params();
+        $patches = $body['patches'] ?? [];
+
+        if (!is_array($patches) || empty($patches)) {
+            return new \WP_REST_Response(['error' => 'Missing "patches" array'], 400);
+        }
+
+        $data = Elementor_Data::get_page_data($page_id);
+        if (!$data) {
+            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+        }
+
+        $results = [];
+        foreach ($patches as $i => $patch) {
+            $eid      = $patch['id'] ?? '';
+            $settings = $patch['settings'] ?? [];
+            if (!$eid || !is_array($settings)) {
+                $results[] = ['index' => $i, 'id' => $eid, 'status' => 'skipped', 'reason' => 'missing id or settings'];
+                continue;
+            }
+            $ok = Elementor_Data::update_element_settings($data, $eid, $settings);
+            $results[] = [
+                'index'  => $i,
+                'id'     => $eid,
+                'status' => $ok ? 'ok' : 'not_found',
+            ];
+        }
+
+        Elementor_Data::save_page_data($page_id, $data);
+
+        $ok_count = count(array_filter($results, fn($r) => $r['status'] === 'ok'));
+        return new \WP_REST_Response([
+            'success'  => true,
+            'applied'  => $ok_count,
+            'total'    => count($patches),
+            'results'  => $results,
+        ], 200);
+    }
+
+    /**
+     * Helper: set flex column width on a container.
+     *
+     * Elementor v4 requires _flex_size + _inline_size + width to be set together
+     * for a flex item to actually take the declared width. This endpoint sets all
+     * three plus their responsive variants in one call.
+     *
+     * Body: {"percent": 25, "tablet": 50, "mobile": 100}
+     */
+    public function set_column_width(\WP_REST_Request $request): \WP_REST_Response {
+        $page_id    = (int) $request['id'];
+        $element_id = $request['element_id'];
+        $body       = $request->get_json_params();
+
+        $percent = isset($body['percent']) ? (float) $body['percent'] : null;
+        if ($percent === null) {
+            return new \WP_REST_Response(['error' => 'Missing "percent" (0-100)'], 400);
+        }
+        $tablet  = isset($body['tablet']) ? (float) $body['tablet'] : null;
+        $mobile  = isset($body['mobile']) ? (float) $body['mobile'] : null;
+
+        $settings = [
+            '_flex_size'    => 'custom',
+            '_inline_size'  => $percent,
+            'width'         => ['unit' => '%', 'size' => $percent, 'sizes' => []],
+            'content_width' => 'full',
+        ];
+        if ($tablet !== null) {
+            $settings['_inline_size_tablet'] = $tablet;
+            $settings['width_tablet']        = ['unit' => '%', 'size' => $tablet, 'sizes' => []];
+        }
+        if ($mobile !== null) {
+            $settings['_inline_size_mobile'] = $mobile;
+            $settings['width_mobile']        = ['unit' => '%', 'size' => $mobile, 'sizes' => []];
+        }
+
+        $data = Elementor_Data::get_page_data($page_id);
+        if (!$data) {
+            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+        }
+
+        $ok = Elementor_Data::update_element_settings($data, $element_id, $settings);
+        if (!$ok) {
+            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+        }
+
+        Elementor_Data::save_page_data($page_id, $data);
+
+        return new \WP_REST_Response([
+            'success'    => true,
+            'element_id' => $element_id,
+            'applied'    => $settings,
+        ], 200);
+    }
+
+    /**
+     * Find elements by widgetType, elType, or text contained in settings.
+     * Query params:
+     *   - widget=wd_banner    → match widgetType
+     *   - elType=container    → match elType
+     *   - contains=Hello      → search text in JSON-serialized settings
+     * Returns: [{id, widgetType, elType, depth, parent_id}, ...]
+     */
+    public function find_elements(\WP_REST_Request $request): \WP_REST_Response {
+        $page_id = (int) $request['id'];
+        $widget  = $request->get_param('widget');
+        $eltype  = $request->get_param('elType');
+        $needle  = $request->get_param('contains');
+
+        if (!$widget && !$eltype && !$needle) {
+            return new \WP_REST_Response(['error' => 'Provide at least one of: widget, elType, contains'], 400);
+        }
+
+        $data = Elementor_Data::get_page_data($page_id);
+        if (!$data) {
+            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+        }
+
+        $matches = [];
+        $walk = function ($nodes, $parent_id = null, $depth = 0) use (&$walk, &$matches, $widget, $eltype, $needle) {
+            foreach ($nodes as $node) {
+                $match = true;
+                if ($widget && ($node['widgetType'] ?? null) !== $widget) $match = false;
+                if ($eltype && ($node['elType'] ?? null)     !== $eltype) $match = false;
+                if ($needle) {
+                    $haystack = json_encode($node['settings'] ?? []);
+                    if (stripos($haystack, $needle) === false) $match = false;
+                }
+                if ($match) {
+                    $matches[] = [
+                        'id'         => $node['id'] ?? null,
+                        'widgetType' => $node['widgetType'] ?? null,
+                        'elType'     => $node['elType'] ?? null,
+                        'depth'      => $depth,
+                        'parent_id'  => $parent_id,
+                    ];
+                }
+                if (!empty($node['elements']) && is_array($node['elements'])) {
+                    $walk($node['elements'], $node['id'] ?? null, $depth + 1);
+                }
+            }
+        };
+        $walk($data);
+
+        return new \WP_REST_Response([
+            'count'   => count($matches),
+            'matches' => $matches,
         ], 200);
     }
 
