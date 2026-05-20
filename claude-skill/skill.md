@@ -67,6 +67,21 @@ curl -s -X POST -u "$AUTH" -H "Content-Type: application/json" \
   -d '{"parent_id":null,"position":2}' \
   "$API/page/{PAGE_ID}/element/{ELEMENT_ID}/move"
 
+# (v1.3) Bulk PATCH — N updates in ONE page load/save (much faster)
+curl -s -X POST -u "$AUTH" -H "Content-Type: application/json" \
+  -d '{"patches":[{"id":"a1","settings":{...}},{"id":"a2","settings":{...}}]}' \
+  "$API/page/{PAGE_ID}/elements/patch-bulk"
+
+# (v1.3) Set flex column width — handles Elementor v4 quirk (_flex_size + _inline_size + width together)
+curl -s -X PATCH -u "$AUTH" -H "Content-Type: application/json" \
+  -d '{"percent":25,"tablet":50,"mobile":100}' \
+  "$API/page/{PAGE_ID}/element/{ELEMENT_ID}/column-width"
+
+# (v1.3) Find elements by widget type, elType, or text in settings
+curl -s -u "$AUTH" "$API/page/{PAGE_ID}/find?widget=wd_banner"
+curl -s -u "$AUTH" "$API/page/{PAGE_ID}/find?elType=container"
+curl -s -u "$AUTH" "$API/page/{PAGE_ID}/find?contains=Nouveautés"
+
 # Remove / Duplicate
 curl -s -X DELETE -u "$AUTH" "$API/page/{PAGE_ID}/element/{ELEMENT_ID}"
 curl -s -X POST -u "$AUTH" "$API/page/{PAGE_ID}/element/{ELEMENT_ID}/duplicate"
@@ -320,6 +335,23 @@ Apply on the header template's main container:
 - **Column wrapping**: If N columns at X% each + gap exceed 100%, they wrap. Ensure `sum(widths) + (N-1)*gap <= 100%`
 - **4 items at 33% = 132%** → wraps to 3+1. Fix: use 25% each
 - **3 columns + gap**: 3×33% + 2×gap can overflow. Use `flex_wrap: "nowrap"` or reduce widths
+
+### Elementor v4 container widths (CRITICAL)
+On Elementor 4.x, setting `width: {size: 25, unit: "%"}` ALONE on an inner container is **not enough** — the column still renders full-width. Three settings must be set together:
+```json
+{
+  "_flex_size": "custom",
+  "_inline_size": 25,
+  "width": {"size": 25, "unit": "%"}
+}
+```
+Use the helper endpoint to avoid this footgun:
+```bash
+curl -X PATCH -u "$AUTH" -H "Content-Type: application/json" \
+  -d '{"percent":25,"tablet":50,"mobile":100}' \
+  "$API/page/{PAGE_ID}/element/{ELEMENT_ID}/column-width"
+```
+This sets all three (plus responsive variants) in one call.
 
 ## Critical API Gotchas
 
