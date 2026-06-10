@@ -126,6 +126,9 @@ Never skip verification — the API may succeed but CSS may cache old values.
 | POST | `/template` | Create template |
 | GET | `/kit` | Get global kit settings |
 | PUT | `/kit` | Update global kit settings |
+| GET | `/kit/globals` | Global colors + fonts (flat) for `__globals__` references |
+| POST | `/page/{id}/restore` | Roll back the last save (one level) |
+| GET | `/health` | Public probe: plugin/Elementor versions + active state (no auth) |
 | GET | `/widgets` | List all available widgets |
 | GET | `/widget/{name}/schema` | Widget control schema |
 | GET | `/widget/{name}/defaults` | Ready-to-use element JSON with defaults |
@@ -282,6 +285,37 @@ A visually rich section with overlapping photos in a collage layout, decorative 
 Hero + two-column (info left with icon-list, form right) + Google Maps on accent background.
 
 ## Design Best Practices (Learned from Experience)
+
+### Design System First — use `__globals__`, not inline hex (MOST IMPORTANT)
+A *professional* page references the site's global colors and fonts so the whole site
+stays consistent and a rebrand is one edit, not 200. Read the globals first:
+```bash
+curl -s -u "$AUTH" "$API/kit/globals" | python3 -m json.tool
+# → {"colors":[{"_id":"primary","title":"Primary","color":"#..."}],
+#    "typography":[{"_id":"primary","title":"Primary","family":"Inter","weight":"600"}]}
+```
+Then reference them from a widget via the `__globals__` object instead of hardcoding hex:
+```json
+{
+  "elType": "widget", "widgetType": "heading",
+  "settings": {
+    "title": "Section Title",
+    "__globals__": {
+      "title_color": "globals/colors?id=primary",
+      "typography_typography": "globals/typography?id=primary"
+    }
+  }
+}
+```
+Elementor resolves `globals/colors?id=<id>` and `globals/typography?id=<id>` from the Kit
+at render time. Prefer this over inline `title_color: "#..."` for anything that should
+track the brand. Inline hex is fine only for one-off, intentionally-off-brand accents.
+
+### Undo a bad write
+Every save snapshots the previous page. If a change looks wrong, roll back one level:
+```bash
+curl -s -X POST -u "$AUTH" "$API/page/{PAGE_ID}/restore"
+```
 
 ### Background Colors
 - **Use strictly 2 background colors** for content sections: white + one accent (e.g., cream, light grey). More than 2 creates an ugly rainbow ("arc-en-ciel") effect.
