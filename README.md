@@ -11,7 +11,7 @@ Build, edit, and manage Elementor pages programmatically — designed to be used
 - **Element operations** — add, remove, duplicate, move elements in the page tree
 - **Global kit management** — read/write colors, fonts, and site-wide settings
 - **Widget discovery** — list all available widgets and get their control schemas
-- **MCP protocol support** — auto-registers 20 abilities when used with [WordPress Abilities API](https://github.com/bvisible/wordpress-abilities-api) + [WordPress MCP Adapter](https://github.com/bvisible/wordpress-mcp-adapter)
+- **MCP protocol support** — auto-registers 20 abilities when used with [WordPress Abilities API](https://github.com/WordPress/abilities-api) + [WordPress MCP Adapter](https://github.com/WordPress/mcp-adapter)
 - **CSS cache management** — flush Elementor CSS after changes
 
 ## Requirements
@@ -110,8 +110,8 @@ curl -s -X POST -u "$AUTH" "$API/flush-css"
 
 This plugin can expose its capabilities via the Model Context Protocol for direct AI agent integration:
 
-1. Install [WordPress Abilities API](https://github.com/bvisible/wordpress-abilities-api)
-2. Install [WordPress MCP Adapter](https://github.com/bvisible/wordpress-mcp-adapter)
+1. Install [WordPress Abilities API](https://github.com/WordPress/abilities-api)
+2. Install [WordPress MCP Adapter](https://github.com/WordPress/mcp-adapter)
 3. The plugin auto-registers 20 abilities — no configuration needed
 
 MCP endpoint: `https://your-site.com/wp-json/mcp/mcp-adapter-default-server`
