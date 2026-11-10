@@ -118,13 +118,13 @@ MCP endpoint: `https://your-site.com/wp-json/mcp/mcp-adapter-default-server`
 
 ## Claude Code Skill
 
-This repo includes a ready-to-use [Claude Code](https://claude.com/claude-code) skill in `claude-skill/`. It teaches Claude how to use the API: workflows, element structures, widget settings, layout patterns, and design best practices.
+This repo includes a ready-to-use [Claude Code](https://claude.com/claude-code) skill in `agent-skill/`. It teaches Claude how to use the API: workflows, element structures, widget settings, layout patterns, and design best practices.
 
 ### Install the skill
 
 ```bash
 cd elementor-mcp-api/
-bash claude-skill/install.sh
+bash agent-skill/install.sh
 ```
 
 This copies the skill to `~/.claude/skills/elementor-builder/`. Restart Claude Code — then just say "build an Elementor page" and it knows how.
