@@ -55,7 +55,7 @@ class Elementor_Data {
         // Fallback: direct meta write
         $json = wp_slash(wp_json_encode($data));
         update_post_meta($post_id, '_elementor_data', $json);
-        update_post_meta($post_id, '_elementor_version', ELEMENTOR_VERSION ?? '3.35.7');
+        update_post_meta($post_id, '_elementor_version', self::elementor_version());
 
         // Manual CSS cache invalidation
         self::flush_css($post_id);
@@ -92,7 +92,7 @@ class Elementor_Data {
         $settings = $el['settings'] ?? [];
         $identifiers = [];
         if (!empty($settings['title'])) $identifiers['title'] = mb_substr($settings['title'], 0, 50);
-        if (!empty($settings['editor'])) $identifiers['text'] = mb_substr(strip_tags($settings['editor']), 0, 50);
+        if (!empty($settings['editor'])) $identifiers['text'] = mb_substr(wp_strip_all_tags($settings['editor']), 0, 50);
         if (!empty($settings['content_width'])) $identifiers['content_width'] = $settings['content_width'];
         if (!empty($settings['flex_direction'])) $identifiers['flex_direction'] = $settings['flex_direction'];
         if ($identifiers) $summary['hint'] = $identifiers;
@@ -195,7 +195,7 @@ class Elementor_Data {
 
         update_post_meta($post_id, '_elementor_template_type', $type);
         update_post_meta($post_id, '_elementor_edit_mode', 'builder');
-        update_post_meta($post_id, '_elementor_version', ELEMENTOR_VERSION ?? '3.35.7');
+        update_post_meta($post_id, '_elementor_version', self::elementor_version());
         update_post_meta($post_id, '_elementor_conditions', $conditions);
 
         // Save Elementor data
@@ -240,42 +240,90 @@ class Elementor_Data {
     // ── Media ────────────────────────────────────────────────
 
     /**
+     * Directories image imports may be read from.
+     *
+     * Defaults to the uploads directory only. Sites that really need to import from
+     * elsewhere on the server can allow extra directories with the
+     * `neoservice_elementor_api_import_dirs` filter.
+     *
+     * @return string[] Resolved, absolute directory paths.
+     */
+    public static function allowed_import_dirs(): array {
+        $upload_dir = wp_upload_dir();
+        $dirs       = apply_filters('neoservice_elementor_api_import_dirs', [$upload_dir['basedir']]);
+
+        $resolved = [];
+        foreach ((array) $dirs as $dir) {
+            $real = is_string($dir) ? realpath($dir) : false;
+            if ($real) {
+                $resolved[] = untrailingslashit(wp_normalize_path($real));
+            }
+        }
+        return $resolved;
+    }
+
+    /**
      * Import an image from a file path into the WP media library.
+     *
+     * The path must resolve (after symlinks) to an image file inside one of the
+     * allowed import directories. Anything else returns 0.
      */
     public static function import_image(string $source_path, string $title = ''): int {
-        if (!file_exists($source_path)) return 0;
+        $real = realpath($source_path);
+        if (!$real || !is_file($real)) return 0;
 
-        $filename = basename($source_path);
-        $title    = $title ?: pathinfo($filename, PATHINFO_FILENAME);
+        $real    = wp_normalize_path($real);
+        $allowed = false;
+        foreach (self::allowed_import_dirs() as $dir) {
+            if (str_starts_with($real, $dir . '/')) {
+                $allowed = true;
+                break;
+            }
+        }
+        if (!$allowed) return 0;
 
-        // Check if already imported
-        global $wpdb;
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_type='attachment' AND post_title=%s LIMIT 1",
-            $title
-        ));
-        if ($existing) return (int) $existing;
+        // Only real images, judged by content, not by the file name.
+        $filename = basename($real);
+        $check    = wp_check_filetype_and_ext($real, $filename);
+        if (empty($check['type']) || !str_starts_with($check['type'], 'image/')) return 0;
+
+        $title = $title ? sanitize_text_field($title) : pathinfo($filename, PATHINFO_FILENAME);
+
+        // Check if already imported.
+        $existing = get_posts([
+            'post_type'      => 'attachment',
+            'post_status'    => 'inherit',
+            'title'          => $title,
+            'posts_per_page' => 1,
+            'fields'         => 'ids',
+        ]);
+        if ($existing) return (int) $existing[0];
 
         $upload_dir = wp_upload_dir();
-        $dest = $upload_dir['path'] . '/' . $filename;
+        $dest       = $upload_dir['path'] . '/' . wp_unique_filename($upload_dir['path'], $filename);
 
-        if (!file_exists($dest)) {
-            copy($source_path, $dest);
-        }
+        if ($real !== wp_normalize_path($dest) && !copy($real, $dest)) return 0;
 
-        $filetype   = wp_check_filetype($filename);
-        $attach_id  = wp_insert_attachment([
-            'post_mime_type' => $filetype['type'],
+        $attach_id = wp_insert_attachment([
+            'post_mime_type' => $check['type'],
             'post_title'     => $title,
             'post_content'   => '',
             'post_status'    => 'inherit',
         ], $dest);
+        if (is_wp_error($attach_id) || !$attach_id) return 0;
 
         require_once ABSPATH . 'wp-admin/includes/image.php';
         $metadata = wp_generate_attachment_metadata($attach_id, $dest);
         wp_update_attachment_metadata($attach_id, $metadata);
 
-        return $attach_id;
+        return (int) $attach_id;
+    }
+
+    /**
+     * Elementor version string stored alongside saved data.
+     */
+    private static function elementor_version(): string {
+        return defined('ELEMENTOR_VERSION') ? ELEMENTOR_VERSION : '3.35.7';
     }
 
     // ── Widget Discovery ─────────────────────────────────────
@@ -379,7 +427,7 @@ class Elementor_Data {
             $upload_dir = wp_upload_dir();
             $css_path   = $upload_dir['basedir'] . '/elementor/css/post-' . $post_id . '.css';
             if (file_exists($css_path)) {
-                unlink($css_path);
+                wp_delete_file($css_path);
             }
             delete_post_meta($post_id, '_elementor_css');
         }
