@@ -1,6 +1,8 @@
 <?php
 namespace NeoService\ElementorAPI;
 
+if (!defined('ABSPATH')) exit;
+
 /**
  * Registers NeoService abilities for the WordPress Abilities API + MCP Adapter.
  * Each ability is exposed as an MCP tool via the default MCP server.

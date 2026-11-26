@@ -1,6 +1,8 @@
 <?php
 namespace NeoService\ElementorAPI;
 
+if (!defined('ABSPATH')) exit;
+
 /**
  * Element Factory - creates properly structured Elementor JSON elements.
  * Inspired by msrbuilds/elementor-mcp Element Factory pattern.

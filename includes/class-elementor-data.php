@@ -1,6 +1,8 @@
 <?php
 namespace NeoService\ElementorAPI;
 
+if (!defined('ABSPATH')) exit;
+
 /**
  * Elementor Data Manager - handles reading/writing Elementor page data.
  * Uses Elementor's native PHP APIs when available, with direct meta fallback.
