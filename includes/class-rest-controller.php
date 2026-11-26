@@ -222,7 +222,7 @@ class REST_Controller {
         $data = Elementor_Data::get_page_data($id);
 
         if ($data === null) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         return new \WP_REST_Response([
@@ -238,7 +238,7 @@ class REST_Controller {
         $structure = Elementor_Data::get_page_structure($id);
 
         if ($structure === null) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         return new \WP_REST_Response([
@@ -253,7 +253,7 @@ class REST_Controller {
         $body = $request->get_json_params();
 
         if (empty($body['data']) || !is_array($body['data'])) {
-            return new \WP_REST_Response(['error' => 'Missing or invalid "data" array'], 400);
+            return new \WP_REST_Response(['error' => __('Missing or invalid "data" array', 'elementor-mcp-api')], 400);
         }
 
         $success = Elementor_Data::save_page_data($id, $body['data']);
@@ -301,12 +301,16 @@ class REST_Controller {
         $data       = Elementor_Data::get_page_data($page_id);
 
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $found = Elementor_Data::find_element($data, $element_id);
         if (!$found) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         return new \WP_REST_Response($found['element'], 200);
@@ -324,7 +328,7 @@ class REST_Controller {
         $position  = $body['position'] ?? -1;
 
         if (!$element || !is_array($element)) {
-            return new \WP_REST_Response(['error' => 'Missing "element" object'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "element" object', 'elementor-mcp-api')], 400);
         }
 
         // Ensure element has an ID
@@ -336,7 +340,11 @@ class REST_Controller {
             // Insert inside a specific parent
             $found = Elementor_Data::find_element($data, $parent_id);
             if (!$found) {
-                return new \WP_REST_Response(['error' => "Parent element '$parent_id' not found"], 404);
+                return new \WP_REST_Response(['error' => sprintf(
+                    /* translators: %s: parent element ID. */
+                    __('Parent element \'%s\' not found', 'elementor-mcp-api'),
+                    $parent_id
+                )], 404);
             }
             if (!isset($found['element']['elements'])) {
                 $found['element']['elements'] = [];
@@ -362,17 +370,21 @@ class REST_Controller {
         $data       = Elementor_Data::get_page_data($page_id);
 
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $settings = $body['settings'] ?? [];
         if (empty($settings)) {
-            return new \WP_REST_Response(['error' => 'Missing "settings" object'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "settings" object', 'elementor-mcp-api')], 400);
         }
 
         $updated = Elementor_Data::update_element_settings($data, $element_id, $settings);
         if (!$updated) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         Elementor_Data::save_page_data($page_id, $data);
@@ -386,12 +398,16 @@ class REST_Controller {
         $data       = Elementor_Data::get_page_data($page_id);
 
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $removed = Elementor_Data::remove_element($data, $element_id);
         if (!$removed) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         Elementor_Data::save_page_data($page_id, $data);
@@ -405,12 +421,16 @@ class REST_Controller {
         $data       = Elementor_Data::get_page_data($page_id);
 
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $new_id = Elementor_Data::duplicate_element($data, $element_id);
         if (!$new_id) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         Elementor_Data::save_page_data($page_id, $data);
@@ -425,7 +445,7 @@ class REST_Controller {
         $data       = Elementor_Data::get_page_data($page_id);
 
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $new_parent_id = $body['parent_id'] ?? null;
@@ -434,7 +454,11 @@ class REST_Controller {
         // Extract the element from its current location
         $found = Elementor_Data::find_element($data, $element_id);
         if (!$found) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         $element = $found['element'];
@@ -446,7 +470,11 @@ class REST_Controller {
         if ($new_parent_id) {
             $parent = Elementor_Data::find_element($data, $new_parent_id);
             if (!$parent) {
-                return new \WP_REST_Response(['error' => "New parent '$new_parent_id' not found"], 404);
+                return new \WP_REST_Response(['error' => sprintf(
+                    /* translators: %s: new parent element ID. */
+                    __('New parent \'%s\' not found', 'elementor-mcp-api'),
+                    $new_parent_id
+                )], 404);
             }
             if (!isset($parent['element']['elements'])) {
                 $parent['element']['elements'] = [];
@@ -479,12 +507,12 @@ class REST_Controller {
         $patches = $body['patches'] ?? [];
 
         if (!is_array($patches) || empty($patches)) {
-            return new \WP_REST_Response(['error' => 'Missing "patches" array'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "patches" array', 'elementor-mcp-api')], 400);
         }
 
         $data = Elementor_Data::get_page_data($page_id);
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $results = [];
@@ -530,7 +558,7 @@ class REST_Controller {
 
         $percent = isset($body['percent']) ? (float) $body['percent'] : null;
         if ($percent === null) {
-            return new \WP_REST_Response(['error' => 'Missing "percent" (0-100)'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "percent" (0-100)', 'elementor-mcp-api')], 400);
         }
         $tablet  = isset($body['tablet']) ? (float) $body['tablet'] : null;
         $mobile  = isset($body['mobile']) ? (float) $body['mobile'] : null;
@@ -552,12 +580,16 @@ class REST_Controller {
 
         $data = Elementor_Data::get_page_data($page_id);
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $ok = Elementor_Data::update_element_settings($data, $element_id, $settings);
         if (!$ok) {
-            return new \WP_REST_Response(['error' => "Element '$element_id' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: element ID. */
+                __('Element \'%s\' not found', 'elementor-mcp-api'),
+                $element_id
+            )], 404);
         }
 
         Elementor_Data::save_page_data($page_id, $data);
@@ -584,12 +616,12 @@ class REST_Controller {
         $needle  = $request->get_param('contains');
 
         if (!$widget && !$eltype && !$needle) {
-            return new \WP_REST_Response(['error' => 'Provide at least one of: widget, elType, contains'], 400);
+            return new \WP_REST_Response(['error' => __('Provide at least one of: widget, elType, contains', 'elementor-mcp-api')], 400);
         }
 
         $data = Elementor_Data::get_page_data($page_id);
         if (!$data) {
-            return new \WP_REST_Response(['error' => 'No Elementor data found'], 404);
+            return new \WP_REST_Response(['error' => __('No Elementor data found', 'elementor-mcp-api')], 404);
         }
 
         $matches = [];
@@ -634,7 +666,7 @@ class REST_Controller {
         $section  = $body['section'] ?? null;
 
         if (!$section || !is_array($section)) {
-            return new \WP_REST_Response(['error' => 'Missing "section" object'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "section" object', 'elementor-mcp-api')], 400);
         }
 
         if (empty($section['id'])) {
@@ -683,7 +715,7 @@ class REST_Controller {
         $post_id = Elementor_Data::create_template($title, $type, $data, $conditions);
 
         if (!$post_id) {
-            return new \WP_REST_Response(['error' => 'Failed to create template'], 500);
+            return new \WP_REST_Response(['error' => __('Failed to create template', 'elementor-mcp-api')], 500);
         }
 
         return new \WP_REST_Response([
@@ -716,7 +748,11 @@ class REST_Controller {
         $schema = Elementor_Data::get_widget_schema($name);
 
         if ($schema === null) {
-            return new \WP_REST_Response(['error' => "Widget '$name' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: widget name. */
+                __('Widget \'%s\' not found', 'elementor-mcp-api'),
+                $name
+            )], 404);
         }
 
         return new \WP_REST_Response($schema, 200);
@@ -727,7 +763,11 @@ class REST_Controller {
         $defaults = Elementor_Data::get_widget_defaults($name);
 
         if ($defaults === null) {
-            return new \WP_REST_Response(['error' => "Widget '$name' not found"], 404);
+            return new \WP_REST_Response(['error' => sprintf(
+                /* translators: %s: widget name. */
+                __('Widget \'%s\' not found', 'elementor-mcp-api'),
+                $name
+            )], 404);
         }
 
         return new \WP_REST_Response($defaults, 200);
@@ -741,13 +781,19 @@ class REST_Controller {
         $title = $body['title'] ?? '';
 
         if (empty($path)) {
-            return new \WP_REST_Response(['error' => 'Missing "path"'], 400);
+            return new \WP_REST_Response(['error' => __('Missing "path"', 'elementor-mcp-api')], 400);
         }
 
         $attach_id = Elementor_Data::import_image($path, $title);
 
         if (!$attach_id) {
-            return new \WP_REST_Response(['error' => "Failed to import: $path"], 500);
+            return new \WP_REST_Response([
+                'error' => sprintf(
+                    /* translators: %s: file path that could not be imported. */
+                    __('Failed to import: %s', 'elementor-mcp-api'),
+                    $path
+                ),
+            ], 500);
         }
 
         return new \WP_REST_Response([

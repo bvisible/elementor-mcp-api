@@ -7,6 +7,8 @@
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * License: GPL-3.0
+ * Text Domain: elementor-mcp-api
+ * Domain Path: /languages
  */
 
 if (!defined('ABSPATH')) exit;
@@ -18,6 +20,11 @@ define('NEOSERVICE_ELEMENTOR_API_PATH', plugin_dir_path(__FILE__));
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-element-factory.php';
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-elementor-data.php';
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-rest-controller.php';
+
+// ── Translations ────────────────────────────────────────────
+add_action('init', function () {
+    load_plugin_textdomain('elementor-mcp-api', false, dirname(plugin_basename(__FILE__)) . '/languages');
+});
 
 // ── REST API ────────────────────────────────────────────────
 add_action('rest_api_init', function () {
