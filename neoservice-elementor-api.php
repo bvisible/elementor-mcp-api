@@ -9,10 +9,12 @@
  * License: GPL-3.0
  */
 
-if (!defined('ABSPATH')) exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
-define('NEOSERVICE_ELEMENTOR_API_VERSION', '1.3.0');
-define('NEOSERVICE_ELEMENTOR_API_PATH', plugin_dir_path(__FILE__));
+define( 'NEOSERVICE_ELEMENTOR_API_VERSION', '1.3.0' );
+define( 'NEOSERVICE_ELEMENTOR_API_PATH', plugin_dir_path( __FILE__ ) );
 
 // Load core includes
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-element-factory.php';
@@ -20,40 +22,62 @@ require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-elementor-data.php'
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-rest-controller.php';
 
 // ── REST API ────────────────────────────────────────────────
-add_action('rest_api_init', function () {
-    if (!did_action('elementor/loaded')) return;
+add_action(
+	'rest_api_init',
+	function () {
+		if ( ! did_action( 'elementor/loaded' ) ) {
+			return;
+		}
 
-    $controller = new NeoService\ElementorAPI\REST_Controller();
-    $controller->register_routes();
-});
+		$controller = new NeoService\ElementorAPI\REST_Controller();
+		$controller->register_routes();
+	}
+);
 
 // ── MCP Abilities (auto-detected if Abilities API is active) ─
 // These hooks only fire if the Abilities API plugin is active.
 // No conditional check needed — WordPress ignores hooks for actions that never fire.
-add_action('wp_abilities_api_categories_init', function () {
-    if (!did_action('elementor/loaded')) return;
+add_action(
+	'wp_abilities_api_categories_init',
+	function () {
+		if ( ! did_action( 'elementor/loaded' ) ) {
+			return;
+		}
 
-    require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-abilities-provider.php';
-    NeoService\ElementorAPI\Abilities_Provider::register_category();
-});
+		require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-abilities-provider.php';
+		NeoService\ElementorAPI\Abilities_Provider::register_category();
+	}
+);
 
-add_action('wp_abilities_api_init', function () {
-    if (!did_action('elementor/loaded')) return;
+add_action(
+	'wp_abilities_api_init',
+	function () {
+		if ( ! did_action( 'elementor/loaded' ) ) {
+			return;
+		}
 
-    if (!class_exists('NeoService\\ElementorAPI\\Abilities_Provider')) {
-        require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-abilities-provider.php';
-    }
-    NeoService\ElementorAPI\Abilities_Provider::register();
-});
+		if ( ! class_exists( 'NeoService\\ElementorAPI\\Abilities_Provider' ) ) {
+			require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-abilities-provider.php';
+		}
+		NeoService\ElementorAPI\Abilities_Provider::register();
+	}
+);
 
 // ── Post Meta Registration ──────────────────────────────────
-add_action('init', function () {
-    register_post_meta('page', '_elementor_data', [
-        'show_in_rest' => true,
-        'single' => true,
-        'type' => 'string',
-        'auth_callback' => function () {
-            return current_user_can('edit_posts');
-        },
-    ]);
-});
+add_action(
+	'init',
+	function () {
+		register_post_meta(
+			'page',
+			'_elementor_data',
+			array(
+				'show_in_rest'  => true,
+				'single'        => true,
+				'type'          => 'string',
+				'auth_callback' => function () {
+					return current_user_can( 'edit_posts' );
+				},
+			)
+		);
+	}
+);
