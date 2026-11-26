@@ -36,17 +36,59 @@ class Abilities_Provider {
     }
 
     /**
-     * Permission: can read posts.
+     * Permission: edit access to the post named by `post_id` in the input.
+     *
+     * @param array|null $input Ability input.
      */
-    public static function can_read(): bool {
-        return current_user_can('read');
+    public static function can_edit_input_post($input = null): bool {
+        return is_array($input) && Permissions::can_edit_post($input['post_id'] ?? 0);
     }
 
     /**
-     * Permission: can edit posts.
+     * Permission: can list and create pages.
      */
-    public static function can_edit(): bool {
-        return current_user_can('edit_posts');
+    public static function can_create_pages(): bool {
+        return Permissions::can_create_pages();
+    }
+
+    /**
+     * Permission: can manage templates, global kit settings and the CSS cache.
+     */
+    public static function can_manage_design(): bool {
+        return Permissions::can_manage_design();
+    }
+
+    /**
+     * Permission: can use the builder helpers (widget list, schemas, element generator).
+     */
+    public static function can_use_builder(): bool {
+        return Permissions::can_use_builder();
+    }
+
+    /**
+     * Permission: flush one post (edit access) or everything (design access).
+     *
+     * @param array|null $input Ability input.
+     */
+    public static function can_flush($input = null): bool {
+        $post_id = is_array($input) ? absint($input['post_id'] ?? 0) : 0;
+        return $post_id ? Permissions::can_edit_post($post_id) : Permissions::can_manage_design();
+    }
+
+    /**
+     * Permission: build-page updates an existing page or creates a new one,
+     * and importing images additionally needs upload rights.
+     *
+     * @param array|null $input Ability input.
+     */
+    public static function can_build($input = null): bool {
+        $input   = is_array($input) ? $input : [];
+        $post_id = absint($input['post_id'] ?? 0);
+        $allowed = $post_id ? Permissions::can_edit_post($post_id) : Permissions::can_create_pages();
+        if ($allowed && !empty($input['images'])) {
+            $allowed = Permissions::can_upload();
+        }
+        return $allowed;
     }
 
     /**
@@ -108,7 +150,7 @@ class Abilities_Provider {
                 }
                 return $result;
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_create_pages'],
             'meta' => self::meta_read(),
         ]);
 
@@ -147,7 +189,7 @@ class Abilities_Provider {
                     'structure' => $structure,
                 ];
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_read(),
         ]);
 
@@ -186,7 +228,7 @@ class Abilities_Provider {
                     'data'  => $data,
                 ];
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_read(),
         ]);
 
@@ -221,7 +263,7 @@ class Abilities_Provider {
                 $success = Elementor_Data::save_page_data($post_id, $input['data']);
                 return ['success' => $success, 'post_id' => $post_id];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(),
         ]);
 
@@ -266,7 +308,7 @@ class Abilities_Provider {
                     'post_title'  => sanitize_text_field($input['title']),
                     'post_name'   => sanitize_title($input['slug'] ?? $input['title']),
                     'post_type'   => 'page',
-                    'post_status' => $input['status'] ?? 'publish',
+                    'post_status' => Permissions::resolve_page_status($input['status'] ?? 'publish'),
                 ]);
                 if (is_wp_error($post_id)) return $post_id;
                 if (!empty($input['data'])) {
@@ -274,7 +316,7 @@ class Abilities_Provider {
                 }
                 return ['post_id' => $post_id, 'url' => get_permalink($post_id)];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_create_pages'],
             'meta' => self::meta_write(),
         ]);
     }
@@ -316,7 +358,7 @@ class Abilities_Provider {
 
                 return $found['element'];
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_read(),
         ]);
 
@@ -381,7 +423,7 @@ class Abilities_Provider {
                 Elementor_Data::save_page_data($post_id, $data);
                 return ['success' => true, 'element_id' => $input['element_id']];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(),
         ]);
 
@@ -426,7 +468,7 @@ class Abilities_Provider {
                 Elementor_Data::save_page_data($post_id, $data);
                 return ['success' => true, 'element_id' => $input['element_id']];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(),
         ]);
 
@@ -486,7 +528,7 @@ class Abilities_Provider {
                 Elementor_Data::save_page_data($post_id, $data);
                 return ['success' => true, 'element_id' => $element['id'] ?? ''];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(),
         ]);
 
@@ -526,7 +568,7 @@ class Abilities_Provider {
                 Elementor_Data::save_page_data($post_id, $data);
                 return ['success' => true];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(true),
         ]);
 
@@ -567,7 +609,7 @@ class Abilities_Provider {
                 Elementor_Data::save_page_data($post_id, $data);
                 return ['success' => true, 'new_id' => $new_id];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_edit_input_post'],
             'meta' => self::meta_write(),
         ]);
 
@@ -666,7 +708,7 @@ class Abilities_Provider {
                         return new \WP_Error('invalid_type', "Unknown element type: $type");
                 }
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_use_builder'],
             'meta' => self::meta_read(),
         ]);
     }
@@ -708,7 +750,7 @@ class Abilities_Provider {
                 }
                 return $result;
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_manage_design'],
             'meta' => self::meta_read(),
         ]);
 
@@ -748,17 +790,17 @@ class Abilities_Provider {
                 ],
             ],
             'execute_callback' => function ($input) {
-                $conditions = $input['conditions'] ?? ['include/general'];
+                $conditions = array_map('sanitize_text_field', (array) ($input['conditions'] ?? ['include/general']));
                 $post_id = Elementor_Data::create_template(
                     sanitize_text_field($input['title']),
-                    $input['type'],
+                    sanitize_key($input['type']),
                     $input['data'],
                     $conditions
                 );
                 if (!$post_id) return new \WP_Error('failed', 'Failed to create template.');
                 return ['post_id' => $post_id];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_manage_design'],
             'meta' => self::meta_write(),
         ]);
     }
@@ -777,7 +819,7 @@ class Abilities_Provider {
             'execute_callback' => function () {
                 return Elementor_Data::get_kit_settings();
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_manage_design'],
             'meta' => self::meta_read(),
         ]);
 
@@ -807,7 +849,7 @@ class Abilities_Provider {
                 if (!$ok) return new \WP_Error('failed', 'Kit not found or update failed.');
                 return ['success' => true];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_manage_design'],
             'meta' => self::meta_write(),
         ]);
     }
@@ -835,7 +877,7 @@ class Abilities_Provider {
             'execute_callback' => function () {
                 return Elementor_Data::list_widgets();
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_use_builder'],
             'meta' => self::meta_read(),
         ]);
 
@@ -862,7 +904,7 @@ class Abilities_Provider {
                 if (!$schema) return new \WP_Error('not_found', 'Widget not found.');
                 return $schema;
             },
-            'permission_callback' => [self::class, 'can_read'],
+            'permission_callback' => [self::class, 'can_use_builder'],
             'meta' => self::meta_read(),
         ]);
     }
@@ -900,7 +942,7 @@ class Abilities_Provider {
                 }
                 return ['success' => true];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_flush'],
             'meta' => self::meta_write(),
         ]);
 
@@ -961,7 +1003,7 @@ class Abilities_Provider {
                 }
 
                 // Create or get page
-                $post_id = $input['post_id'] ?? 0;
+                $post_id = absint($input['post_id'] ?? 0);
                 if (!$post_id) {
                     if (empty($input['title'])) {
                         return new \WP_Error('missing_title', 'Title is required when creating a new page.');
@@ -970,7 +1012,7 @@ class Abilities_Provider {
                         'post_title'  => sanitize_text_field($input['title']),
                         'post_name'   => sanitize_title($input['slug'] ?? $input['title']),
                         'post_type'   => 'page',
-                        'post_status' => 'publish',
+                        'post_status' => Permissions::resolve_page_status('publish'),
                     ]);
                     if (is_wp_error($post_id)) return $post_id;
                 }
@@ -984,7 +1026,7 @@ class Abilities_Provider {
                     'image_ids' => $image_ids,
                 ];
             },
-            'permission_callback' => [self::class, 'can_edit'],
+            'permission_callback' => [self::class, 'can_build'],
             'meta' => self::meta_write(),
         ]);
     }

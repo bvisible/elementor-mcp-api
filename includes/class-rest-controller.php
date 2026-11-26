@@ -10,75 +10,72 @@ class REST_Controller {
     const NAMESPACE = 'neoservice/v1';
 
     public function register_routes(): void {
-        $editor = ['permission_callback' => [$this, 'check_edit_permission']];
-        $reader = ['permission_callback' => [$this, 'check_read_permission']];
-
         // ── Pages ────────────────────────────────────────
         register_rest_route(self::NAMESPACE, '/pages', [
             'methods'  => 'GET',
             'callback' => [$this, 'list_pages'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_list_pages_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_page'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/structure', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_page_structure'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)', [
             'methods'  => 'PUT',
             'callback' => [$this, 'update_page'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page', [
             'methods'  => 'POST',
             'callback' => [$this, 'create_page'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_create_page_permission'],
         ]);
 
         // ── Elements (granular operations) ───────────────
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element', [
             'methods'  => 'POST',
             'callback' => [$this, 'add_element'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_element'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)', [
             'methods'  => 'PATCH',
             'callback' => [$this, 'update_element'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)', [
             'methods'  => 'DELETE',
             'callback' => [$this, 'remove_element'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)/duplicate', [
             'methods'  => 'POST',
             'callback' => [$this, 'duplicate_element'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)/move', [
             'methods'  => 'POST',
             'callback' => [$this, 'move_element'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         // ── Bulk operations (1.3.0) ──────────────────────
@@ -87,7 +84,7 @@ class REST_Controller {
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/elements/patch-bulk', [
             'methods'  => 'POST',
             'callback' => [$this, 'patch_elements_bulk'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         // Helper: set flex column width on a container (Elementor v4 requires
@@ -96,98 +93,154 @@ class REST_Controller {
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/element/(?P<element_id>[a-f0-9]+)/column-width', [
             'methods'  => 'PATCH',
             'callback' => [$this, 'set_column_width'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         // Find elements by widgetType. Returns array of {id, parent_id, depth}.
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/find', [
             'methods'  => 'GET',
             'callback' => [$this, 'find_elements'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         // ── Section-level insert ─────────────────────────
         register_rest_route(self::NAMESPACE, '/page/(?P<id>\d+)/section', [
             'methods'  => 'POST',
             'callback' => [$this, 'add_section'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_page_permission'],
         ]);
 
         // ── Templates ────────────────────────────────────
         register_rest_route(self::NAMESPACE, '/templates', [
             'methods'  => 'GET',
             'callback' => [$this, 'list_templates'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_design_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/template', [
             'methods'  => 'POST',
             'callback' => [$this, 'create_template'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_design_permission'],
         ]);
 
         // ── Kit / Global Settings ────────────────────────
         register_rest_route(self::NAMESPACE, '/kit', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_kit'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_design_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/kit', [
             'methods'  => 'PUT',
             'callback' => [$this, 'update_kit'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_design_permission'],
         ]);
 
         // ── Widgets ──────────────────────────────────────
         register_rest_route(self::NAMESPACE, '/widgets', [
             'methods'  => 'GET',
             'callback' => [$this, 'list_widgets'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_builder_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/widget/(?P<name>[a-z0-9_-]+)/schema', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_widget_schema'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_builder_permission'],
         ]);
 
         register_rest_route(self::NAMESPACE, '/widget/(?P<name>[a-z0-9_-]+)/defaults', [
             'methods'  => 'GET',
             'callback' => [$this, 'get_widget_defaults'],
-            ...$reader,
+            'permission_callback' => [$this, 'check_builder_permission'],
         ]);
 
         // ── Media ────────────────────────────────────────
         register_rest_route(self::NAMESPACE, '/media/import', [
             'methods'  => 'POST',
             'callback' => [$this, 'import_media'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_upload_permission'],
         ]);
 
         // ── Cache ────────────────────────────────────────
         register_rest_route(self::NAMESPACE, '/flush-css', [
             'methods'  => 'POST',
             'callback' => [$this, 'flush_css'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_flush_permission'],
         ]);
 
         // ── Build (composite) ────────────────────────────
         register_rest_route(self::NAMESPACE, '/build-page', [
             'methods'  => 'POST',
             'callback' => [$this, 'build_page'],
-            ...$editor,
+            'permission_callback' => [$this, 'check_build_permission'],
         ]);
     }
 
     // ── Permission checks ────────────────────────────────────
 
-    public function check_read_permission(): bool {
-        return current_user_can('read');
+    /**
+     * Build a consistent 403 error for a failed capability check.
+     */
+    private function forbidden() {
+        return new \WP_Error(
+            'rest_forbidden',
+            'Sorry, you are not allowed to do that.',
+            ['status' => rest_authorization_required_code()]
+        );
     }
 
-    public function check_edit_permission(): bool {
-        return current_user_can('edit_posts');
+    /**
+     * Page-scoped routes: the user must be able to edit the page in the URL.
+     */
+    public function check_page_permission(\WP_REST_Request $request) {
+        return Permissions::can_edit_post($request['id']) ? true : $this->forbidden();
+    }
+
+    public function check_list_pages_permission() {
+        return Permissions::can_create_pages() ? true : $this->forbidden();
+    }
+
+    public function check_create_page_permission() {
+        return Permissions::can_create_pages() ? true : $this->forbidden();
+    }
+
+    public function check_design_permission() {
+        return Permissions::can_manage_design() ? true : $this->forbidden();
+    }
+
+    public function check_builder_permission() {
+        return Permissions::can_use_builder() ? true : $this->forbidden();
+    }
+
+    public function check_upload_permission() {
+        return Permissions::can_upload() ? true : $this->forbidden();
+    }
+
+    /**
+     * Flushing one post needs edit access to it; flushing everything needs design access.
+     */
+    public function check_flush_permission(\WP_REST_Request $request) {
+        $params  = $request->get_json_params();
+        $post_id = is_array($params) ? absint($params['post_id'] ?? 0) : 0;
+        $allowed = $post_id ? Permissions::can_edit_post($post_id) : Permissions::can_manage_design();
+        return $allowed ? true : $this->forbidden();
+    }
+
+    /**
+     * Build-page: update needs edit access to that page, create needs page creation rights.
+     * Importing images additionally needs upload rights.
+     */
+    public function check_build_permission(\WP_REST_Request $request) {
+        $params  = $request->get_json_params();
+        $params  = is_array($params) ? $params : [];
+        $page_id = absint($params['page_id'] ?? 0);
+
+        $allowed = $page_id ? Permissions::can_edit_post($page_id) : Permissions::can_create_pages();
+        if ($allowed && !empty($params['images'])) {
+            $allowed = Permissions::can_upload();
+        }
+        return $allowed ? true : $this->forbidden();
     }
 
     // ── Pages ────────────────────────────────────────────────
@@ -266,15 +319,15 @@ class REST_Controller {
     }
 
     public function create_page(\WP_REST_Request $request): \WP_REST_Response {
-        $body = $request->get_json_params();
-        $title = $body['title'] ?? 'New Page';
-        $slug  = $body['slug'] ?? sanitize_title($title);
+        $body  = $request->get_json_params();
+        $title = sanitize_text_field($body['title'] ?? 'New Page');
+        $slug  = sanitize_title($body['slug'] ?? $title);
 
         $post_id = wp_insert_post([
             'post_title'  => $title,
             'post_name'   => $slug,
             'post_type'   => 'page',
-            'post_status' => $body['status'] ?? 'publish',
+            'post_status' => Permissions::resolve_page_status($body['status'] ?? 'publish'),
         ]);
 
         if (is_wp_error($post_id)) {
@@ -599,7 +652,7 @@ class REST_Controller {
                 if ($widget && ($node['widgetType'] ?? null) !== $widget) $match = false;
                 if ($eltype && ($node['elType'] ?? null)     !== $eltype) $match = false;
                 if ($needle) {
-                    $haystack = json_encode($node['settings'] ?? []);
+                    $haystack = wp_json_encode($node['settings'] ?? []);
                     if (stripos($haystack, $needle) === false) $match = false;
                 }
                 if ($match) {
@@ -675,10 +728,12 @@ class REST_Controller {
 
     public function create_template(\WP_REST_Request $request): \WP_REST_Response {
         $body       = $request->get_json_params();
-        $title      = $body['title'] ?? 'Template';
-        $type       = $body['type'] ?? 'section';
-        $data       = $body['data'] ?? [];
-        $conditions = $body['conditions'] ?? ['include/general'];
+        $title      = sanitize_text_field($body['title'] ?? 'Template');
+        $type       = sanitize_key($body['type'] ?? 'section');
+        $data       = is_array($body['data'] ?? null) ? $body['data'] : [];
+        $conditions = is_array($body['conditions'] ?? null)
+            ? array_map('sanitize_text_field', $body['conditions'])
+            : ['include/general'];
 
         $post_id = Elementor_Data::create_template($title, $type, $data, $conditions);
 
@@ -700,7 +755,10 @@ class REST_Controller {
     }
 
     public function update_kit(\WP_REST_Request $request): \WP_REST_Response {
-        $body    = $request->get_json_params();
+        $body = $request->get_json_params();
+        if (!is_array($body)) {
+            return new \WP_REST_Response(['error' => 'Missing or invalid settings object'], 400);
+        }
         $success = Elementor_Data::update_kit_settings($body);
         return new \WP_REST_Response(['success' => $success], $success ? 200 : 500);
     }
@@ -737,8 +795,8 @@ class REST_Controller {
 
     public function import_media(\WP_REST_Request $request): \WP_REST_Response {
         $body  = $request->get_json_params();
-        $path  = $body['path'] ?? '';
-        $title = $body['title'] ?? '';
+        $path  = is_string($body['path'] ?? null) ? $body['path'] : '';
+        $title = sanitize_text_field($body['title'] ?? '');
 
         if (empty($path)) {
             return new \WP_REST_Response(['error' => 'Missing "path"'], 400);
@@ -747,7 +805,7 @@ class REST_Controller {
         $attach_id = Elementor_Data::import_image($path, $title);
 
         if (!$attach_id) {
-            return new \WP_REST_Response(['error' => "Failed to import: $path"], 500);
+            return new \WP_REST_Response(['error' => 'Failed to import the file. It must be an image inside an allowed directory.'], 400);
         }
 
         return new \WP_REST_Response([
@@ -760,7 +818,7 @@ class REST_Controller {
 
     public function flush_css(\WP_REST_Request $request): \WP_REST_Response {
         $body    = $request->get_json_params();
-        $post_id = $body['post_id'] ?? 0;
+        $post_id = absint($body['post_id'] ?? 0);
 
         if ($post_id) {
             Elementor_Data::flush_css($post_id);
@@ -777,13 +835,13 @@ class REST_Controller {
         $body = $request->get_json_params();
 
         // Create or update page
-        $page_id = $body['page_id'] ?? 0;
+        $page_id = absint($body['page_id'] ?? 0);
         if (!$page_id) {
             $page_id = wp_insert_post([
-                'post_title'  => $body['title'] ?? 'New Page',
-                'post_name'   => $body['slug'] ?? '',
+                'post_title'  => sanitize_text_field($body['title'] ?? 'New Page'),
+                'post_name'   => sanitize_title($body['slug'] ?? ''),
                 'post_type'   => 'page',
-                'post_status' => $body['status'] ?? 'publish',
+                'post_status' => Permissions::resolve_page_status($body['status'] ?? 'publish'),
             ]);
             if (is_wp_error($page_id)) {
                 return new \WP_REST_Response(['error' => $page_id->get_error_message()], 500);
@@ -794,7 +852,10 @@ class REST_Controller {
         $media_map = [];
         if (!empty($body['images']) && is_array($body['images'])) {
             foreach ($body['images'] as $key => $img) {
-                $attach_id = Elementor_Data::import_image($img['path'] ?? '', $img['title'] ?? '');
+                $attach_id = Elementor_Data::import_image(
+                    is_string($img['path'] ?? null) ? $img['path'] : '',
+                    sanitize_text_field($img['title'] ?? '')
+                );
                 $media_map[$key] = [
                     'id'  => $attach_id,
                     'url' => $attach_id ? wp_get_attachment_url($attach_id) : '',

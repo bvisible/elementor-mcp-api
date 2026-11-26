@@ -15,6 +15,7 @@ define('NEOSERVICE_ELEMENTOR_API_VERSION', '1.3.0');
 define('NEOSERVICE_ELEMENTOR_API_PATH', plugin_dir_path(__FILE__));
 
 // Load core includes
+require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-permissions.php';
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-element-factory.php';
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-elementor-data.php';
 require_once NEOSERVICE_ELEMENTOR_API_PATH . 'includes/class-rest-controller.php';
@@ -52,8 +53,8 @@ add_action('init', function () {
         'show_in_rest' => true,
         'single' => true,
         'type' => 'string',
-        'auth_callback' => function () {
-            return current_user_can('edit_posts');
+        'auth_callback' => function ($allowed, $meta_key, $post_id) {
+            return NeoService\ElementorAPI\Permissions::can_edit_post($post_id);
         },
     ]);
 });
