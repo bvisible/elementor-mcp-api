@@ -1,6 +1,8 @@
 <?php
 namespace NeoService\ElementorAPI;
 
+if (!defined('ABSPATH')) exit;
+
 /**
  * REST API Controller - exposes all Elementor operations as REST endpoints.
  * Authenticated via WordPress Application Passwords or cookie auth.
